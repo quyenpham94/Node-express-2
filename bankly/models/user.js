@@ -8,12 +8,12 @@ class User {
 
 /** Register user with data. Returns new user data. */
 
-  static async register({username, password, first_name, last_name, email, phone}) {
+  static async register(data) {
     const duplicateCheck = await db.query(
       `SELECT username 
         FROM users 
         WHERE username = $1`,
-      [username]
+      [data.username]
     );
 
     if (duplicateCheck.rows[0]) {
@@ -31,12 +31,12 @@ class User {
         VALUES ($1, $2, $3, $4, $5, $6) 
         RETURNING username, password, first_name, last_name, email, phone`,
       [
-        username,
+        data.username,
         hashedPassword,
-        first_name,
-        last_name,
-        email,
-        phone
+        data.first_name,
+        data.last_name,
+        data.email,
+        data.phone
       ]
     );
 
@@ -113,6 +113,8 @@ class User {
     const user = result.rows[0];
 
     if (!user) {
+      // bug: doesn't throw error
+      // new ExpressError("No such user", 404)
       new ExpressError('No such user', 404);
     }
 

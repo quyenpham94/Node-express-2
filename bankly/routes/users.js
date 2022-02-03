@@ -17,8 +17,15 @@ const { authUser, requireLogin, requireAdmin } = require('../middleware/auth');
 
 router.get('/', authUser, requireLogin, async function(req, res, next) {
   try {
+    // BUG: should not return all fields
     let users = await User.getAll();
-    return res.json({ users });
+
+    let out = users.map(u => ({
+      username: u.username,
+      first_name: u.first_name,
+      last_name: u.last_name
+    }))
+    return res.json({ users: out });
   } catch (err) {
     return next(err);
   }
@@ -63,7 +70,8 @@ router.get('/:username', authUser, requireLogin, async function(
  *
  */
 
-router.patch('/:username', authUser, requireLogin, requireAdmin, async function(
+// BUG: requires staff user but any user should be able to do requireAdmin
+router.patch('/:username', authUser, requireLogin, async function(
   req,
   res,
   next
@@ -76,6 +84,14 @@ router.patch('/:username', authUser, requireLogin, requireAdmin, async function(
     // get fields to change; remove token so we don't try to change it
     let fields = { ...req.body };
     delete fields._token;
+    // BUG: lets you put username, admin
+    // let user = await User.update(req.params.username, req.body);
+    const ok_fields = ['first_name', 'last_name', 'phone', 'email'];
+    for (let key in fields) {
+      if (!ok_fields.includes(key)) {
+        throw new ExpressError(`Can't change ${key}`, 401);
+      }
+    }
 
     let user = await User.update(req.params.username, fields);
     return res.json({ user });
@@ -100,7 +116,8 @@ router.delete('/:username', authUser, requireAdmin, async function(
   next
 ) {
   try {
-    User.delete(req.params.username);
+    // BUG doesn't await
+    await User.delete(req.params.username);
     return res.json({ message: 'deleted' });
   } catch (err) {
     return next(err);
