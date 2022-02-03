@@ -1,3 +1,5 @@
+CREATE DATABASE bankly;
+\connect bankly;
 
 CREATE TABLE users (
     username text PRIMARY KEY,
